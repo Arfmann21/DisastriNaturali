@@ -1,5 +1,5 @@
 import streamlit as st
-from query_backend import query
+from backend import query
 
 st.write("""
 # My first app
