@@ -1,4 +1,4 @@
 spark-class org.apache.spark.deploy.master.Master
 spark-class org.apache.spark.deploy.worker.Worker spark://192.168.1.13:7077
 spark-class org.apache.spark.deploy.worker.Worker spark://192.168.1.13:7077
-streamlit run interaction.py
+streamlit run frontend.py
