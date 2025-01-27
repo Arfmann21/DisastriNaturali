@@ -1,14 +1,14 @@
 from pyspark.sql import SparkSession
-import logging
-import pandas as pd
+from pyspark.sql.types import LongType
+from textblob import TextBlob
 
 # Creare una sessione Spark
 spark = SparkSession.builder \
     .appName("FeaturesSelection") \
     .getOrCreate()
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("SparkLogger")
+def clustering():
+    df = spark.read("")
 
 ########### AGGIUNTA DELL'ETICHETTA DEL CLASSIFICATORE AL DATASET ###########
 # Crea un RDD per aggiungere la colonna AIDRlabel, etichetta data dal classificatore. Non viene fatta automaticamente la suddivisione dei campi
@@ -23,8 +23,6 @@ rdd_clean = rdd_classifier_splitted.filter(lambda line: line != header)
 
 # Lista per definire le colonne che risulteranno nel dataframe corrispondente
 columns = ['id', 'date', 'aidr_label', 'aidr_confidence']
-
-from pyspark.sql.types import LongType
 
 df_c = spark.createDataFrame(rdd_clean, columns)
 
@@ -41,19 +39,28 @@ df_subset = df.select("id", "user.name", "user.screen_name", "user.verified", "t
 # Rimuove i tweet che sono retweet per diminuire di molto la dimensionalità, non danno valore aggiunto al dataset 
 df_subset = df_subset.filter(df_subset['retweeted_status'].isNull())
 
+
+########### CALCOLO DEL SENTIMENT CON TEXTBLOB ###########
+df_subset_list = df_subset.collect()
+df_sentiment_list = [{}]
+
+for row in df_subset_list:
+    if(row["truncated"] == True):
+        sentiment = TextBlob(row["full_text"]).sentiment
+    else:
+        sentiment = TextBlob(row["text"]).sentiment
+    
+    df_sentiment_list.append({"id": row["id"], "sentiment": sentiment})
+
+# Aggiunta della colonna con i relativi valori al dataframe principale
+df_sentiment = spark.createDataFrame(data = df_sentiment_list, schema = ["id", "sentiment"])
+df_subset = df_subset.join(df_sentiment, "id")
+
+# DataFrame finale con le etichette del classificatore
 df_total = df_subset.join(df_c.select('id', 'aidr_label'), 'id')
+
 
 ########### ###########
 
 # Scrive il dataset in file JSON
 df_total.write.json("output", "overwrite")
-
-#logging.info("PRIMI 20 RECORD") 
-#logging.info(df_total.show(truncate = False))
-
-#logging.info("SCHEMA DEL DATAFARAME")
-#logging.info(df_total.printSchema())
-
-#logging.info(df_c.show(truncate = False))
-#df_c.printSchema()
-
