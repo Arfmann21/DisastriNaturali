@@ -24,10 +24,18 @@ df["sentiment_polarity"] = df["sentiment"].apply(lambda x: x.get("polarity") if 
 df["oggettivita"] = df["sentiment"].apply(
     lambda x: "Oggettivo" if pd.notnull(x) and x.get("subjectivity", 0) <= 0.5 else "Soggettivo")
 
-# Estrai la città e le coordinate
-df['city'] = df['place'].apply(lambda x: x.get('full_name') if pd.notnull(x) and 'full_name' in x else None)
-df['coordinates'] = df['place'].apply(lambda x: x.get('bounding_box', {}).get('coordinates') if pd.notnull(x) and 'bounding_box' in x else None)
+# Estrarre l'abbreviazione dello stato dalla colonna "place"
+df["state_abbr"] = df["place"].apply(
+    lambda x: x.get("full_name").split(", ")[-1] if pd.notnull(x) and "full_name" in x else None
+)
 
+# Estrarre il nome della città dalla colonna "place"
+df["city"] = df["place"].apply(
+    lambda x: x.get("name") if pd.notnull(x) and "name" in x else None
+)
+
+
+df['coordinates'] = df['place'].apply(lambda x: x.get('bounding_box', {}).get('coordinates') if pd.notnull(x) and 'bounding_box' in x else None)
 # Estrai la prima coppia di coordinate (latitudine, longitudine)
 def extract_lat_lon(coordinates):
     if isinstance(coordinates, list) and len(coordinates) > 0:
@@ -39,7 +47,7 @@ def extract_lat_lon(coordinates):
 df['latitude'], df['longitude'] = zip(*df['coordinates'].apply(extract_lat_lon))
 
 # Rimuovi le colonne non richieste
-columns_to_drop = ["id", "place", "full_text", "truncated", "sentiment", "subjectivity"]
+columns_to_drop = ["id", "place", "full_text", "truncated", "sentiment", "subjectivity", "coordinates"]
 df = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
 
 # Funzione per determinare il colore in base al sentiment
@@ -67,9 +75,16 @@ def color_rows(row):
     else:
         return ['background-color: lightgreen; color: black'] * len(row)
 
-# Applica lo stile condizionale alla tabella
 styled_df = df.style.apply(color_rows, axis=1)
 
+# Dropdown per selezionare uno stato
+state = st.selectbox("Seleziona uno Stato", options=sorted(df["state_abbr"].dropna().unique()))
+
+# Filtrare le città basate sullo stato selezionato
+filtered_cities = df[df["state_abbr"] == state]["city"].dropna().unique()
+
+# Dropdown per selezionare una città basata sullo stato selezionato
+city = st.selectbox("Seleziona una Città", options=sorted(filtered_cities))
 # Visualizza la legenda dei colori
 st.markdown("### Legenda dei Colori")
 st.markdown(
@@ -94,7 +109,7 @@ marker_cluster = MarkerCluster().add_to(m)
 for _, row in df.iterrows():
     if pd.notnull(row['latitude']) and pd.notnull(row['longitude']):
         color = get_color(row['sentiment_polarity'])
-        tooltip = f"{row['text']} | {row['city']}"
+        tooltip = f"{row['name']} | {row['city']}"
         folium.CircleMarker(
             location=[row['latitude'], row['longitude']],
             radius=7,
