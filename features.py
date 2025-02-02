@@ -1,14 +1,12 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.types import LongType
+from pyspark.sql.functions import when, col, lit
 from textblob import TextBlob
 
 # Creare una sessione Spark
 spark = SparkSession.builder \
     .appName("FeaturesSelection") \
     .getOrCreate()
-
-def clustering():
-    df = spark.read("")
 
 ########### AGGIUNTA DELL'ETICHETTA DEL CLASSIFICATORE AL DATASET ###########
 # Crea un RDD per aggiungere la colonna AIDRlabel, etichetta data dal classificatore. Non viene fatta automaticamente la suddivisione dei campi
@@ -55,10 +53,31 @@ for row in df_subset_list:
 # Aggiunta della colonna con i relativi valori al dataframe principale
 df_sentiment = spark.createDataFrame(data = df_sentiment_list, schema = ["id", "sentiment"])
 df_subset = df_subset.join(df_sentiment, "id")
+df_subset = df_subset.withColumn("sentiment_polarity", df_subset.sentiment.polarity)
+df_subset = df_subset.withColumn("sentiment_subjectivity", df_subset.sentiment.subjectivity)
 
-# DataFrame finale con le etichette del classificatore
+# DataFrame con le etichette del classificatore
 df_total = df_subset.join(df_c.select('id', 'aidr_label'), 'id')
 
+
+########### TRASFORMAZIONE DEI CAMPI PER LA VISUALIZZAZIONE ###########
+
+# Sostituisce il text con il full_text in caso di truncated
+df_total = df_total.withColumn("text", when(df_total["truncated"] == True, df_total["full_text"]).otherwise(df_total["text"]))
+
+# Sostituisce place con place_latitude e place_longitude per le sue coordinate e full_name per città
+df_total = df_total.withColumn("place_latitude", df_total.place.bounding_box.coordinates[0][0][0])
+df_total = df_total.withColumn("place_longitude", df_total.place.bounding_box.coordinates[0][0][1])
+df_total = df_total.withColumn("place_name", df_total.place.full_name)
+
+# Esplicita latitudine e longitudine del campo coordinates
+df_total = df_total.withColumn("latitude", df_total.coordinates.coordinates[0])
+df_total = df_total.withColumn("longitude", df_total.coordinates.coordinates[1])
+
+
+# Drop di colonne non rilevanti
+columns_to_drop = ["id", "full_text", "truncated", "place", "coordinates", "sentiment"]
+df_total = df_total.drop(*columns_to_drop)
 
 ########### ###########
 
