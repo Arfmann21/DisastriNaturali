@@ -1,0 +1,27 @@
+1. Considerazioni sul paper e funzionalità da aggiungere
+2. Trasformazioni per ottenere il dataset di interesse 
+3. Implementazione della UI con streamlit e connessione con il backend
+4. Implementazione delle funzionalità, come query componibile ed LLM
+5. Ottimizzazioni per le prestazioni
+
+Il paper si è rivelato un valido strumento per comprendere meglio il dataset, nonostante la sua grande mole di dati. Il dataset raccoglie i tweet pubblicati durante i tre uragani che nel 2017 hanno colpito il suolo americano.
+Grazie all'analisi del paper, abbiamo identificato le funzionalità da implementare e le tecniche di preprocessing necessarie per ottimizzare l'uso dei dati. Una delle strategie adottate è stata la feature selection, che ci ha permesso di ridurre la dimensione del dataset migliorandone l'efficienza. In particolare, abbiamo eliminato record e colonne non rilevanti e consolidato dati ripetuti, come le colonne "text" e "full_text", nel caso in cui il contenuto risultasse troncato.
+Abbiamo inoltre migliorato la gestione delle date e delle coordinate spaziali, permettendone un uso più efficace per la creazione di grafici e l'implementazione di funzioni analitiche. Una delle aggiunte più significative è stata l'inserimento della colonna "aidr_label", che classifica i tweet secondo una tassonomia umanitaria, suddividendo i contenuti in categorie quali:
+
+Persone ferite o decedute,
+
+Danni alle infrastrutture,
+
+Avvisi e consigli,
+
+Donazioni e volontariato,
+
+Messaggi di supporto e simpatia,
+
+Informazioni irrilevanti,
+
+Per arricchire ulteriormente l'analisi, abbiamo calcolato due metriche basate sul testo dei tweet:
+sentiment_polarity: un valore compreso tra -1 (negativo) e 1 (positivo) che indica il tono del messaggio.
+sentiment_subjectivity: un valore compreso tra 0 (oggettivo) e 1 (soggettivo) che misura il grado di soggettività del contenuto.
+L'analisi del sentiment è stata condotta utilizzando la libreria Python TextBlob, che ci ha permesso di estrarre informazioni chiave sulla percezione degli utenti rispetto agli eventi descritti nei tweet.
+Grazie a queste migliorie, il dataset è ora più strutturato ed efficiente, consentendo un'analisi più approfondita e facilitando la visualizzazione delle informazioni in modo chiaro e significativo.
