@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.types import LongType
-from pyspark.sql.functions import concat, when, lit, split, create_map
+from pyspark.sql.functions import hour, when, lit, split, create_map, to_date
 from itertools import chain
 from pyspark.sql.types import StructType, StructField, StringType, DateType, TimestampNTZType
 from textblob import TextBlob
@@ -152,6 +152,10 @@ mapping_expr = create_map([lit(x) for x in chain(*state_mapping.items())])
 
 df_total = df_total.withColumn("place_state", when((df_total.place.country_code == "US") & (df_total.place.place_type == "admin"), mapping_expr[split(df_total.place_name, ", ")[0]])
                                .otherwise(when((df_total.place.country_code == "US") & (df_total.place.place_type == "city"), split(df_total.place_name, ", ")[1]))) 
+
+df_total = df_total.withColumn("phase", when(df_total.date < to_date(lit("2017-08-17")), lit(0)).when( (df_total.date >= to_date(lit("2017-08-17"))) & (df_total.date <= to_date(lit("2017-09-12")) ), lit(1)).otherwise(lit(2)))
+
+df_total = df_total.withColumn("timerange_end", hour(df_total.date) + 1)
 
 # Drop di colonne non rilevanti
 columns_to_drop = ["id", "full_text", "truncated", "coordinates", "sentiment", "place", "created_at"]
