@@ -28,7 +28,7 @@ def initialize_state():
         st.session_state["created_at"] = None
 
     if "place" not in st.session_state:
-        st.session_state["place"] = "" 
+        st.session_state["place"] = [] 
 
     if "num_record" not in st.session_state:
         st.session_state["num_record"] = 0
@@ -105,7 +105,7 @@ def draw_topbar():
 
         with place_col:
             st.markdown("##### Place")
-            st.multiselect("Collapsed", states_abbr, label_visibility="collapsed")
+            st.multiselect("Collapsed", states_abbr, label_visibility="collapsed", key = "place")
 
     with advancedButton:
         with stylable_container(
