@@ -1,9 +1,10 @@
 import streamlit as st
-from backend import query
+from backend import query, mean_polarity
 import pandas as pd
 from streamlit_extras.stylable_container import stylable_container
 import folium
 from folium import Popup
+import matplotlib.pyplot as plt
 from streamlit_folium import folium_static  # Aggiungi questa importazione
 
 
@@ -15,6 +16,10 @@ verified = None
 created_at = None
 place = None
 num_record = 0
+
+aidr_labels = ["injured_or_dead_people", "infrastructure_and_utility_damage", "caution_and_advice", 
+                                        "donation_and_volunteering", "affected_individual", "missing_and_found_people", "sympathy_and_support", "personal", 
+                                        "other_useful_information", "irrelevant_or_not_related", "response_efforts"]
 
 ## Inizializzazione dello state
 def initialize_state():
@@ -110,6 +115,9 @@ def draw_corr_pol_sub(result):
 
     st.scatter_chart(data = result, x = "sentiment_polarity", y = "sentiment_subjectivity", x_label = "Polarity", y_label = "Subjectivity", height=0, use_container_width=True)
 
+def draw_corr_pol_phase(result):
+    st.markdown("### Correlazione tra sentiment polarity e fase")
+
 
 def draw_corr_pol_aidr(result):
     st.markdown("### Correlazione tra sentiment polarity e label")
@@ -119,6 +127,8 @@ def draw_topbar():
     states_abbr = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
+
+    global aidr_labels
 
     basic_filters_col, advancedButton, runQuery = st.columns([0.7, 0.2, 0.2])
 
@@ -203,10 +213,13 @@ def draw_topbar():
         with map_col:
             show_map(result)
 
-        #with corr_pol_sub_col:
+        with corr_pol_sub_col:
+            draw_corr_pol_aidr(result)
 
         with test:
-            draw_corr_pol_aidr(result)
+
+            for label in aidr_labels:
+                st.markdown(mean_polarity(label))
 
         draw_corr_pol_sub(result)
 

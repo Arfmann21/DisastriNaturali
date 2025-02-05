@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit
+from pyspark.sql.functions import col, lit, mean
 from datetime import date
 
 spark = SparkSession.builder.master("spark://192.168.1.13:7077") \
@@ -8,33 +8,20 @@ spark = SparkSession.builder.master("spark://192.168.1.13:7077") \
 
 df = spark.read.json("output")
 
-def scatter_plot():
-    df_t = df.filter(df.place.country_code == "US")
-    df_t.select("place.bounding_box.coordinates")
-    #plt.scatter(df_t.place.coordinates[0], df_t.place.coordinates[1])
+result = df
+
+def mean_polarity(label):
+    global result
+
+    result = result.filter(result.aidr_label == label)
+    return result.agg(mean(result.sentiment_polarity)).collect()[0][0]  
 
 def query(labels = None, verified = None, created_at = None, created_at_end = None, possibly_sensitive = None, place = None, coordinates = None, groupByValue = None):
-    #return spark.sql("SELECT * FROM Dataset").collect()
-
-    '''query = "SELECT * FROM Dataset WHERE true "
-
-    if(verified != 2): query += "AND verified = " + str(bool(verified))
-    if(created_at is not None): 
-        if(len(created_at) == 1):
-            query += " AND createdAt = " + created_at[0]
-
-    if(possibly_sensitive is not None): query += " AND possibly_sensitive = " + possibly_sensitive
-    if(place is not None): query += " AND place = " + place
-    if(coordinates is not None): query += " AND coordinates = " + coordinates
-    if(label is not None and len(label) > 0):
-       query += " AND aidr_label = \"" + label[0] + "\""
-       
-    if(groupByValue is not None): query += " GROUPBY " + groupByValue
-    return spark.sql(query)
-
-    '''
-
-    return df.filter(label_parser(labels) & verified_parser(verified) & possibly_sensitive_parser(possibly_sensitive) & date_parser(created_at, created_at_end) & place_parser(place)).toPandas()
+    global df
+    global result 
+    df = df.filter(label_parser(labels) & verified_parser(verified) & possibly_sensitive_parser(possibly_sensitive) & date_parser(created_at, created_at_end) & place_parser(place))
+    result = df
+    return df.toPandas()
 
 def label_parser(labels):
     return (col("aidr_label").isin(labels)) if len(labels) > 0 else lit(True)
