@@ -154,7 +154,7 @@ df_total = df_total.withColumn("place_state", when((df_total.place.country_code 
                                .otherwise(when((df_total.place.country_code == "US") & (df_total.place.place_type == "city"), split(df_total.place_name, ", ")[1]))) 
 
 # Drop di colonne non rilevanti
-columns_to_drop = ["id", "full_text", "truncated", "coordinates", "sentiment", "created_at"]
+columns_to_drop = ["id", "full_text", "truncated", "coordinates", "sentiment", "place", "created_at"]
 df_total = df_total.drop(*columns_to_drop)
 
 ########### ###########
