@@ -78,6 +78,43 @@ def main():
     # Colonne per i filtri di base, il pulsante per aprire i filtri avanzati e quello per eseguire la query
     draw_topbar()
 
+def show_map(result):
+# Ricrea la mappa con i dati esistenti
+    m = folium.Map(location=[37.0902, -95.7129], zoom_start=4)
+    for _, row in result.iterrows():
+         if pd.notnull(row['latitude']) and pd.notnull(row['longitude']):
+            color = get_color(row['sentiment_polarity'])
+
+            popup_text = f"""
+                    Sentiment: {row['sentiment_polarity']}<br>
+                    Subjectivity: {row['sentiment_subjectivity']}<br>
+                    Place: {row['place_name']}
+                    """
+                
+            folium.CircleMarker(
+                location=[row['latitude'], row['longitude']],
+                radius=7,
+                color=color,
+                fill=True,
+                fill_color=color,
+                fill_opacity=0.7,
+                popup = Popup(popup_text, max_width = 300)
+            ).add_to(m)
+
+    # Mostra la mappa
+    st.markdown("### Mappa dei Punti di Coordinata")
+    folium_static(m)
+    
+def draw_corr_pol_sub(result):
+    st.markdown("### Correlazione tra sentiment polarity e subjectivity")
+
+    st.scatter_chart(data = result, x = "sentiment_polarity", y = "sentiment_subjectivity", x_label = "Polarity", y_label = "Subjectivity", height=0, use_container_width=True)
+
+
+def draw_corr_pol_aidr(result):
+    st.markdown("### Correlazione tra sentiment polarity e label")
+    st.scatter_chart(data = result, x = "aidr_label", y = "sentiment_polarity", x_label = "Polarity", y_label = "Label", height=550, use_container_width=True)
+
 def draw_topbar():
     states_abbr = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
@@ -93,7 +130,7 @@ def draw_topbar():
             st.markdown("##### Label")
             st.multiselect("Collapsed", placeholder = "Nessuno selezionato", options = ["injured_or_dead_people", "infrastructure_and_utility_damage", "caution_and_advice", 
                                         "donation_and_volunteering", "affected_individual", "missing_and_found_people", "sympathy_and_support", "personal", 
-                                        "other_useful_information", "irrelevant_or_not_related"], key ="selected_labels", label_visibility="collapsed")
+                                        "other_useful_information", "irrelevant_or_not_related", "response_efforts"], key ="selected_labels", label_visibility="collapsed")
 
         with verified_col:
             st.markdown("##### Verified")
@@ -133,6 +170,19 @@ def draw_topbar():
         ): 
             st.markdown("###### 0 selezionati")
             st.button("FILTRI AVANZATI", type="secondary")
+            st.session_state["show_advanced"] = True
+
+            # Se il popup è attivato, mostra la finestra modale
+            if st.session_state["show_advanced"]:
+                with st.modal("Filtri Avanzati"):
+                    st.markdown("### Filtri Avanzati")
+
+                    # Esempio di nuovi filtri avanzati
+                    st.multiselect("Selezione possibly_sensitive", options=["True", "False"], key="possibly_sensitive")
+                    st.multiselect("Seleziona periodo", options=["0", "1", "2"], key="phase")
+
+                    if st.button("Chiudi"):
+                        st.session_state["show_advanced"] = False
 
     with runQuery:
         with stylable_container(
@@ -160,30 +210,17 @@ def draw_topbar():
         st.markdown("### Risultati della Query - " + str(st.session_state["num_record"]) + " record trovati")
         st.dataframe(result, use_container_width=True, column_order = ["aidr_label", "name", "screen_name", "date", "verified", "latitude", "longitude", "place_name", "place_latitude", "place_longitude", "possibly_sensitive", "sentiment_polarity", "sentiment_subjectivity", "favourite_count", "text"])
 
-        # Ricrea la mappa con i dati esistenti
-        m = folium.Map(location=[37.0902, -95.7129], zoom_start=4)
-        for _, row in result.iterrows():
-            if pd.notnull(row['latitude']) and pd.notnull(row['longitude']):
-                color = get_color(row['sentiment_polarity'])
 
-                popup_text = f"""
-                        Sentiment: {row['sentiment_polarity']}<br>
-                        Subjectivity: {row['sentiment_subjectivity']}<br>
-                        Place: {row['place_name']}
-                        """
-                
-                folium.CircleMarker(
-                    location=[row['latitude'], row['longitude']],
-                    radius=7,
-                    color=color,
-                    fill=True,
-                    fill_color=color,
-                    fill_opacity=0.7,
-                    popup = Popup(popup_text, max_width = 300)
-                ).add_to(m)
+        map_col, corr_pol_sub_col, test = st.columns([0.3, 0.4, 0.2])
 
-        # Mostra la mappa
-        st.markdown("### Mappa dei Punti di Coordinata")
-        folium_static(m)
+        with map_col:
+            show_map(result)
+
+        #with corr_pol_sub_col:
+
+        with test:
+            draw_corr_pol_aidr(result)
+
+        draw_corr_pol_sub(result)
 
 main()

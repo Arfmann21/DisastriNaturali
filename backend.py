@@ -13,7 +13,7 @@ def scatter_plot():
     df_t.select("place.bounding_box.coordinates")
     #plt.scatter(df_t.place.coordinates[0], df_t.place.coordinates[1])
 
-def query(labels = None, verified = None, created_at = None, created_at_end = None, possibly_sensitive = None, place = None, coordinates = None, groupByValue = None):
+def query(labels = None, verified = None, created_at = None, created_at_end = None, possibly_sensitive = None, place = None, coordinates = None, groupByValue = None, phase = None):
     #return spark.sql("SELECT * FROM Dataset").collect()
 
     '''query = "SELECT * FROM Dataset WHERE true "
@@ -26,9 +26,9 @@ def query(labels = None, verified = None, created_at = None, created_at_end = No
     if(possibly_sensitive is not None): query += " AND possibly_sensitive = " + possibly_sensitive
     if(place is not None): query += " AND place = " + place
     if(coordinates is not None): query += " AND coordinates = " + coordinates
+    if(phase is not None): query += "AND phase = " + phase
     if(label is not None and len(label) > 0):
        query += " AND aidr_label = \"" + label[0] + "\""
-       
     if(groupByValue is not None): query += " GROUPBY " + groupByValue
     return spark.sql(query)
 
