@@ -178,8 +178,26 @@ def draw_topbar():
             float: right;
             }"""
         ): 
+            if "show_advanced" not in st.session_state:
+                st.session_state["show_advanced"] = False
+
+            # Aggiungi il markdown e il bottone per aprire i filtri avanzati
             st.markdown("###### 0 selezionati")
-            st.button("FILTRI AVANZATI", type="secondary")
+            if st.button("FILTRI AVANZATI"):
+                st.session_state["show_advanced"] = True
+
+            # Se il popup è attivato, mostra la finestra "modale"
+            if st.session_state["show_advanced"]:
+                with st.container():
+                    st.markdown("### Filtri Avanzati")
+
+                    # Aggiungi i filtri avanzati
+                    st.multiselect("Selezione possibly_sensitive", options=["True", "False"], key="possibly_sensitive")
+                    st.multiselect("Seleziona periodo", options=["0", "1", "2"], key="phase")
+
+                    # Bottone per chiudere la finestra modale
+                    if st.button("Chiudi"):
+                        st.session_state["show_advanced"] = False
 
     with runQuery:
         with stylable_container(
