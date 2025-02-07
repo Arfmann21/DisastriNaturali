@@ -6,13 +6,21 @@ from pyspark.sql.types import StructType, StructField, StringType, DateType, Tim
 from textblob import TextBlob
 from email.utils import parsedate_to_datetime
 from datetime import datetime
+import time
+
 
 # Creare una sessione Spark
-spark = SparkSession.builder \
+spark = SparkSession.builder.master("spark://192.168.1.13:7077") \
     .appName("FeaturesSelection") \
-    .getOrCreate()
+    .config("spark.driver.memory", "2g") \
+    .config("spark.executor.memory", "4G") \
+    .config("spark.sql.shuffle.partitions", "8") \
+    .config("spark.executor.cores", "8") \
+        .getOrCreate() \
 
 
+
+start_time = time.time()
 ########### AGGIUNTA DELL'ETICHETTA DEL CLASSIFICATORE AL DATASET ###########
 # Crea un RDD per aggiungere la colonna AIDRlabel, etichetta data dal classificatore. Non viene fatta automaticamente la suddivisione dei campi
 rdd_classifier = spark.read.text("classification.txt").rdd
@@ -37,13 +45,16 @@ df_c = df_c.withColumn('id', df_c['id'].cast(LongType()))
 # Carica il file JSON in un DataFrame
 df = spark.read.json('dataset')
 
-df_subset = df.select("id", "user.name", "user.screen_name", "user.verified", "text", "extended_tweet.full_text", "created_at", "retweeted_status", "truncated", "possibly_sensitive", "favorite_count", "place", "coordinates", "user.location")
+df_subset = df.select("id", "user.name", "user.screen_name", "user.verified", 
+                      "text", "extended_tweet.full_text", "created_at", 
+                      "retweeted_status", "truncated", "possibly_sensitive", 
+                      "favorite_count", "place", "coordinates")
 
 # Rimuove i tweet che sono retweet per diminuire di molto la dimensionalità, non danno valore aggiunto al dataset 
 df_subset = df_subset.filter(df_subset['retweeted_status'].isNull())
 
 
-########### CALCOLO DEL SENTIMENT CON TEXTBLOB E SEPARAZIONE DATA/ORA ###########
+########### CALCOLO DEL SENTIMENT CON TEXTBLOB, SEPARAZIONE DATA/ORA ###########
 df_subset_list = df_subset.collect()
 df_sentiment_list = [{}]
 
@@ -165,3 +176,7 @@ df_total = df_total.drop(*columns_to_drop)
 
 # Scrive il dataset in file JSON
 df_total.write.json("output", "overwrite")
+
+end_time = time.time()
+
+print(f"Tempo di esecuzione: {end_time - start_time:.2f} secondi")
