@@ -19,7 +19,7 @@ def mean_polarity(label):
 def query(labels = None, verified = None, created_at = None, created_at_end = None, possibly_sensitive = None, place = None, coordinates = None, groupByValue = None):
     global df
     global result 
-    df = df.filter(label_parser(labels) & verified_parser(verified) & possibly_sensitive_parser(possibly_sensitive) & date_parser(created_at, created_at_end) & place_parser(place))
+    df = df.filter(label_parser(labels) & verified_parser(verified) & possibly_sensitive_parser(possibly_sensitive) & date_parser(created_at, created_at_end) & place_parser(place) & possibly_sensitive_parser(possibly_sensitive))
     result = df
     return df.toPandas()
 
