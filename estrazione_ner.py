@@ -1,40 +1,69 @@
-import pandas as pd
-from collections import Counter
-from transformers import pipeline
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, when, lit
+from pyspark.sql.types import StructType, StructField, StringType
+from flair.data import Sentence
+from flair.models import SequenceTagger
+import json
 
-# 1. Inizializza il modello NER di Hugging Face
-ner_pipeline = pipeline(
-    "ner",
-    model="dbmdz/bert-large-cased-finetuned-conll03-english",
-    aggregation_strategy="simple"
-)
+# Initialize Spark Session with optimized configuration
+spark = SparkSession.builder \
+    .appName("TweetNER") \
+    .config("spark.driver.memory", "2g") \
+    .config("spark.executor.memory", "4g") \
+    .config("spark.sql.shuffle.partitions", "8") \
+    .config("spark.executor.cores", "8") \
+    .getOrCreate()
 
-# 2. Carica il dataset (assicurati che il percorso sia corretto)
-df = pd.read_json('output/dataset.json')
+# Load the Flair NER model once per worker
+tagger = SequenceTagger.load("ner-fast")
 
-# 3. Funzione per estrarre entità e il loro tipo da una riga di testo
+# Load the processed tweet dataset
+df = spark.read.json("output")
+
+# Convert DataFrame to RDD for custom processing
+rdd = df.select('text').filter(col('text').isNotNull()).rdd
+
+# Define a function to extract named entities using Flair
 def extract_entities(text):
-    # Ottieni le entità dal modello
-    ents = ner_pipeline(text)
-    # Restituisci una lista di tuple (entità, tipo)
-    return [(ent['word'], ent['entity_group']) for ent in ents]
+    sentence = Sentence(text)
+    tagger.predict(sentence)
 
-# 4. Applica la funzione su ogni riga della colonna 'text'
-df['entities'] = df['text'].apply(extract_entities)
+    entities = [(entity.text, entity.get_label("ner").value) for entity in sentence.get_spans("ner")]
+    return entities if entities else [(None, None)]
 
-# 5. Estrai tutte le entità (con il loro tipo) in un'unica lista
-all_entities = [entity for sublist in df['entities'] for entity in sublist]
+# Apply the function to the RDD
+entities_rdd = rdd.flatMap(lambda row: extract_entities(row['text']))
 
-# 6. Conta le occorrenze per ciascuna coppia (Entity, Type)
-entity_counts = Counter(all_entities)
+# Convert back to DataFrame for easier handling
+schema = StructType([
+    StructField("entity", StringType(), True),
+    StructField("type", StringType(), True)
+])
 
-# 7. Crea un DataFrame con i conteggi e il tipo di entità
-entity_counts_df = pd.DataFrame(
-    [(ent, typ, count) for ((ent, typ), count) in entity_counts.items()],
-    columns=['Entity', 'Type', 'Count']
+entities_df = spark.createDataFrame(entities_rdd, schema)
+
+# Normalize specific entity names
+entities_df = entities_df.withColumn(
+    "entity", 
+    when(col("entity").rlike("(?i)^(harvey|hurricane harvey)$"), lit("Harvey"))
+    .when(col("entity").rlike("(?i)^irma$"), lit("Irma"))
+    .otherwise(col("entity"))
+).withColumn(
+    "type", 
+    when(col("entity") == "Harvey", lit("MISC"))
+    .when(col("entity") == "Irma", lit("MISC"))
+    .otherwise(col("type"))
 )
 
-# 8. Salva i risultati in un file CSV
-entity_counts_df.to_csv('entity_counts.csv', index=False)
+# Aggregate and count entity occurrences
+entity_counts_df = entities_df.groupBy("entity", "type").count().orderBy(col("count").desc())
 
-print("Estrazione completata e salvata in 'entity_counts.csv'.")
+# Save the NER results and counts in JSON format
+entities_df.write.json("ner_extracted_entities_rdd", mode="overwrite")
+entity_counts_df.write.json("ner_entity_counts_rdd", mode="overwrite")
+
+# Display results for verification
+entities_df.show(truncate=False)
+entity_counts_df.show(truncate=False)
+
+print("Named Entity Recognition completed successfully!")
