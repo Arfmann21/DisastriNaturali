@@ -7,7 +7,7 @@ import json
 
 # Initialize Spark Session with optimized configuration
 spark = SparkSession.builder \
-    .appName("TweetNER") \
+    .appName("TweetNER_RDD") \
     .config("spark.driver.memory", "2g") \
     .config("spark.executor.memory", "4g") \
     .config("spark.sql.shuffle.partitions", "8") \
@@ -58,12 +58,10 @@ entities_df = entities_df.withColumn(
 # Aggregate and count entity occurrences
 entity_counts_df = entities_df.groupBy("entity", "type").count().orderBy(col("count").desc())
 
-# Save the NER results and counts in JSON format
-entities_df.write.json("ner_extracted_entities_rdd", mode="overwrite")
-entity_counts_df.write.json("ner_entity_counts_rdd", mode="overwrite")
+# Save the final NER results with counts in a single JSON file
+entity_counts_df.write.json("ner_final_output", mode="overwrite")
 
 # Display results for verification
-entities_df.show(truncate=False)
 entity_counts_df.show(truncate=False)
 
-print("Named Entity Recognition completed successfully!")
+print("Named Entity Recognition with RDD completed successfully!")
