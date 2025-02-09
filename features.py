@@ -2,23 +2,19 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import LongType
 from pyspark.sql.functions import hour, when, lit, split, create_map, to_date
 from itertools import chain
-from pyspark.sql.types import StructType, StructField, StringType, DateType, TimestampNTZType
+from pyspark.sql.types import StructType, StructField, TimestampNTZType
 from textblob import TextBlob
 from email.utils import parsedate_to_datetime
-from datetime import datetime
 import time
 
 
 # Creare una sessione Spark
 spark = SparkSession.builder.master("spark://192.168.1.13:7077") \
-    .appName("FeaturesSelection") \
-    .config("spark.driver.memory", "2g") \
-    .config("spark.executor.memory", "4G") \
-    .config("spark.sql.shuffle.partitions", "8") \
+    .appName("Preprocessing") \
+    .config("spark.driver.memory", "4g") \
+    .config("spark.executor.memory", "6G") \
     .config("spark.executor.cores", "8") \
-        .getOrCreate() \
-
-
+    .getOrCreate() \
 
 start_time = time.time()
 ########### AGGIUNTA DELL'ETICHETTA DEL CLASSIFICATORE AL DATASET ###########
@@ -95,8 +91,8 @@ df_total = df_subset.join(df_c.select('id', 'aidr_label'), 'id')
 df_total = df_total.withColumn("text", when(df_total["truncated"] == True, df_total["full_text"]).otherwise(df_total["text"]))
 
 # Sostituisce place con place_latitude e place_longitude per le sue coordinate e full_name per città
-df_total = df_total.withColumn("place_latitude", df_total.place.bounding_box.coordinates[0][0][0])
-df_total = df_total.withColumn("place_longitude", df_total.place.bounding_box.coordinates[0][0][1])
+df_total = df_total.withColumn("place_latitude", df_total.place.bounding_box.coordinates[0][0][1])
+df_total = df_total.withColumn("place_longitude", df_total.place.bounding_box.coordinates[0][0][0])
 df_total = df_total.withColumn("place_name", df_total.place.full_name)
 
 # Esplicita latitudine e longitudine del campo coordinates
