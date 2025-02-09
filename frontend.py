@@ -60,7 +60,6 @@ def initialize_state():
     if "folium_coordinates" not in st.session_state:
         st.session_state["folium_coordinates"] = None
 
-
 def set_filters():
     global labels
     global verified
@@ -114,6 +113,7 @@ def query_button():
     st.session_state["mean_state"] = []
     st.session_state["folium_place"] = None
     st.session_state["folium_coordinates"] = None
+    st.session_state["ner"] = df_ner
 
 def main():
     st.set_page_config(layout="wide")
@@ -173,7 +173,7 @@ def __coordinates_map(result):
     # Mostra la mappa
     st.markdown("### Mappa delle coordinate dei tweet")
     
-    folium_static(m , width=500, height=400)
+    folium_static(m , width=400, height=400)
 
 def __place_map(result):
     if st.session_state["folium_place"] is None:
@@ -204,7 +204,7 @@ def __place_map(result):
     # Mostra la mappa
     st.markdown("### Mappa delle coordinate dei place")
     
-    folium_static(m, width=500, height=400)
+    folium_static(m, width=400, height=400)
 
 def draw_corr_pol_sub(result):
     st.markdown("### Correlazione tra sentiment polarity e subjectivity")
@@ -223,7 +223,7 @@ def draw_corr_pol_area(result):
     st.scatter_chart(data = result, x = "place_state", y = "sentiment_polarity", x_label = "State", y_label = "Polarity", height=550, use_container_width=True)
 
 def show_ner_data():
-    st.markdown("### Risultati Named Entity Recognition")
+    st.markdown("### Risultati NER")
     st.dataframe(df_ner, column_order = ["entity", "type", "total_count"])
 
 def draw_topbar():
@@ -304,8 +304,12 @@ def show_data():
         else:
             st.markdown(f"**SENTIMENT POLARITY E SUBJECTIVITY MEDIO:** Nessun dato disponibile", unsafe_allow_html=True)
 
-        show_map(result)
-        show_ner_data()
+        
+        maps_col, ner_col = st.columns([0.7, 0.2], vertical_alignment="center")
+        with maps_col:
+            show_map(result)
+        with ner_col:
+            show_ner_data()
 
         st.markdown("#####")
         corr_pol_sub_col, mean_pol_aidr = st.columns([ 0.4, 0.2])
