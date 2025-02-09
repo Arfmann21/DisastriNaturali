@@ -11,9 +11,12 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 df = spark.read.json("output")
-df_ner = spark.read.json("final_ner_entity_counts")
+result = df
+df_ner = spark.read.json("ner").toPandas()
+
 def mean_polarity():
-    return [df.agg(mean(df.sentiment_polarity)).collect()[0][0], df.agg(mean(df.sentiment_subjectivity)).collect()[0][0]]
+    global result
+    return [result.agg(mean(result.sentiment_polarity)).collect()[0][0], result.agg(mean(result.sentiment_subjectivity)).collect()[0][0]]
 
 def mean_label_polarity(aidr_labels):
     means = []
