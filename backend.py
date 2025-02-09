@@ -2,7 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, lit, mean
 from datetime import date
 
-spark = SparkSession.builder.master("spark://192.168.1.13:7077") \
+spark = SparkSession.builder \
     .appName("QueryBackend") \
     .config("spark.driver.memory", "8g") \
     .config("spark.executor.memory", "4G") \
@@ -11,7 +11,7 @@ spark = SparkSession.builder.master("spark://192.168.1.13:7077") \
     .getOrCreate()
 
 df = spark.read.json("output")
-
+df_ner = spark.read.json("final_ner_entity_counts")
 def mean_polarity():
     return [df.agg(mean(df.sentiment_polarity)).collect()[0][0], df.agg(mean(df.sentiment_subjectivity)).collect()[0][0]]
 
