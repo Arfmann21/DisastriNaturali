@@ -1,5 +1,5 @@
 import streamlit as st
-from backend import query, mean_label_polarity, mean_state_polarity, mean_polarity
+from backend import query, mean_label_polarity, mean_state_polarity, mean_polarity, df_ner
 import pandas as pd
 from streamlit_extras.stylable_container import stylable_container
 import folium
@@ -222,6 +222,10 @@ def draw_corr_pol_area(result):
 
     st.scatter_chart(data = result, x = "place_state", y = "sentiment_polarity", x_label = "State", y_label = "Polarity", height=550, use_container_width=True)
 
+def show_ner_data():
+    st.markdown("### Risultati Named Entity Recognition")
+    st.dataframe(df_ner, column_order = ["entity", "type", "total_count"])
+
 def draw_topbar():
     states_abbr = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
@@ -301,6 +305,7 @@ def show_data():
             st.markdown(f"**SENTIMENT POLARITY E SUBJECTIVITY MEDIO:** Nessun dato disponibile", unsafe_allow_html=True)
 
         show_map(result)
+        show_ner_data()
 
         st.markdown("#####")
         corr_pol_sub_col, mean_pol_aidr = st.columns([ 0.4, 0.2])
